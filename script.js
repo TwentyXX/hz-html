@@ -251,14 +251,10 @@ class TwelveToneLoop {
         // 5歳向けの等ラウドネス曲線の近似
         let correction = 1.0;
         
-        if (f < 250) {
-            // 極低音域の補正（250Hz以下）- 大幅に強調
-            const logRatio = Math.log10(250 / f);
-            correction = 1.0 + (logRatio * 0.8); // 低音域を大幅に強調
-        } else if (f < 220) {
-            // 低音域の補正（250Hz-220Hz）
+        if (f < 220) {
+            // 極低音域の補正（220Hz以下）- 大幅に強調
             const logRatio = Math.log10(220 / f);
-            correction = 1.0 + (logRatio * 0.6);
+            correction = 1.0 + (logRatio * 0.8); // 低音域を大幅に強調
         } else if (f < 660) {
             // 220Hz-660Hz - 70%減衰を目安に調整
             const ratio = (f - 220) / (660 - 220);
