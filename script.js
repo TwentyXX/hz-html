@@ -308,11 +308,7 @@ class TwelveToneLoop {
             const startIndex = this.keyToAbsoluteIndex(this.startKey);
             const absoluteIndex = startIndex + relativeIndex;
             const noteName = this.absoluteIndexToKey(absoluteIndex);
-            const direction = this.isReverse ? '(逆順)' : '(順方向)';
-            const correctionInfo = this.loudnessCorrection ? ' [補正済]' : '';
-            const wakeLockInfo = this.wakeLock ? ' [画面オン]' : '';
-            const mediaSessionInfo = this.mediaSessionEnabled ? ' [メディア]' : '';
-            this.currentNoteDisplay.textContent = `${noteName} (${frequency.toFixed(1)} Hz)`;
+            this.currentNoteDisplay.textContent = `${noteName} ${frequency.toFixed(1)} Hz`;
             
         } catch (error) {
             console.error('音の再生に失敗しました:', error);
@@ -508,7 +504,7 @@ class TwelveToneLoop {
         const range = `${this.startKey}-${this.endKey}`;
         
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: `12音正弦波ループ (${direction})`,
+            title: `12音正弦波ループ ${direction}`,
             artist: `範囲: ${range}`,
             album: `テンポ: ${this.tempo} BPM | 音量: ${Math.round(this.volume * 100)}%`,
             artwork: [
