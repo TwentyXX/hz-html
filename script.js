@@ -195,26 +195,26 @@ class TwelveToneLoop {
             // 低音域の補正（250Hz-440Hz）
             const logRatio = Math.log10(440 / f);
             correction = 1.0 + (logRatio * 0.6);
+        } else if (f < 660) {
+            // 440Hz-660Hz - 急激に減衰開始
+            const ratio = (f - 440) / (660 - 440);
+            correction = 1.0 - (ratio * 0.6); // 440Hzから急激に減衰
         } else if (f < 880) {
-            // 440Hz（A4）から880Hz（A5）まで - 徐々に減衰開始
-            const ratio = (f - 440) / (880 - 440);
-            correction = 1.0 - (ratio * 0.3); // 440Hzから徐々に減衰
-        } else if (f < 1760) {
-            // 880Hz-1760Hz - 更に減衰
-            const ratio = (f - 880) / (1760 - 880);
-            correction = 0.7 - (ratio * 0.2);
-        } else if (f < 3520) {
-            // 1760Hz-3520Hz - 大幅に減衰
-            const ratio = (f - 1760) / (3520 - 1760);
-            correction = 0.5 - (ratio * 0.2);
+            // 660Hz-880Hz - 更に大幅減衰
+            const ratio = (f - 660) / (880 - 660);
+            correction = 0.4 - (ratio * 0.2);
+        } else if (f < 1320) {
+            // 880Hz-1320Hz - 非常に大幅減衰
+            const ratio = (f - 880) / (1320 - 880);
+            correction = 0.2 - (ratio * 0.1);
         } else {
-            // 3520Hz以上 - 非常に大幅に減衰
-            const logRatio = Math.log10(f / 3520);
-            correction = 0.3 - (logRatio * 0.2);
+            // 1320Hz以上 - 極度に減衰
+            const logRatio = Math.log10(f / 1320);
+            correction = 0.1 - (logRatio * 0.05);
         }
         
-        // 補正値を0.1-2.0の範囲に制限
-        return Math.max(0.1, Math.min(2.0, correction));
+        // 補正値を0.05-2.0の範囲に制限
+        return Math.max(0.05, Math.min(2.0, correction));
     }
     
     createOscillator(frequency) {
