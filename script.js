@@ -196,21 +196,20 @@ class TwelveToneLoop {
             const logRatio = Math.log10(440 / f);
             correction = 1.0 + (logRatio * 0.6);
         } else if (f < 660) {
-            // 440Hz-660Hz - 急激に減衰開始
+            // 440Hz-660Hz - 70%減衰を目安に調整
             const ratio = (f - 440) / (660 - 440);
-            correction = 1.0 - (ratio * 0.6); // 440Hzから急激に減衰
+            correction = 1.0 - (ratio * 0.7); // 440Hzから70%減衰
         } else if (f < 880) {
-            // 660Hz-880Hz - 更に大幅減衰
+            // 660Hz-880Hz - 75%減衰
             const ratio = (f - 660) / (880 - 660);
-            correction = 0.4 - (ratio * 0.2);
+            correction = 0.3 - (ratio * 0.05); // 30%から25%へ
         } else if (f < 1320) {
-            // 880Hz-1320Hz - 非常に大幅減衰
+            // 880Hz-1320Hz - 85%減衰
             const ratio = (f - 880) / (1320 - 880);
-            correction = 0.2 - (ratio * 0.1);
+            correction = 0.25 - (ratio * 0.1); // 25%から15%へ
         } else {
-            // 1320Hz以上 - 極度に減衰
-            const logRatio = Math.log10(f / 1320);
-            correction = 0.1 - (logRatio * 0.05);
+            // 1320Hz以上 - 90%減衰で安定
+            correction = 0.1;
         }
         
         // 補正値を0.05-2.0の範囲に制限
