@@ -176,36 +176,42 @@ class TwelveToneLoop {
         return this.baseFrequency * Math.pow(2, semitonesFromA4 / 12);
     }
     
-    // 等ラウドネス曲線に基づく音量補正を計算
+    // 10代向け等ラウドネス曲線に基づく音量補正を計算
     calculateLoudnessCorrection(frequency) {
         if (!this.loudnessCorrection) return 1.0;
         
-        // ISO 226:2003 等ラウドネス曲線の近似式（40phon基準）
+        // 10代の聴覚特性に合わせた補正（高音域の感度が高い）
         // 1kHz付近を基準として、他の周波数での相対的な音量調整
         const f = frequency;
         
-        // 簡略化された等ラウドネス曲線の近似
-        // 低音域と高音域での聴覚感度の低下を補正
+        // 10代向けの等ラウドネス曲線の近似
         let correction = 1.0;
         
-        if (f < 1000) {
-            // 低音域の補正（1kHz以下）
+        if (f < 500) {
+            // 極低音域の補正（500Hz以下）- より強く強調
+            const logRatio = Math.log10(500 / f);
+            correction = 1.0 + (logRatio * 0.5); // 低音域をより強調
+        } else if (f < 1000) {
+            // 低音域の補正（500Hz-1kHz）
             const logRatio = Math.log10(1000 / f);
-            correction = 1.0 + (logRatio * 0.3); // 低音域を強調
-        } else if (f > 1000) {
-            // 高音域の補正（1kHz以上）
-            if (f < 4000) {
-                // 1-4kHzは聴覚感度が高いので少し抑制
-                correction = 0.9;
-            } else {
-                // 4kHz以上は徐々に補正を強化
-                const logRatio = Math.log10(f / 4000);
-                correction = 0.9 + (logRatio * 0.2);
-            }
+            correction = 1.0 + (logRatio * 0.4);
+        } else if (f < 2000) {
+            // 中音域（1-2kHz）- 基準域
+            correction = 1.0;
+        } else if (f < 4000) {
+            // 中高音域（2-4kHz）- 10代は感度が高いので抑制
+            correction = 0.8;
+        } else if (f < 8000) {
+            // 高音域（4-8kHz）- さらに抑制
+            correction = 0.7;
+        } else {
+            // 超高音域（8kHz以上）- 大幅に抑制
+            const logRatio = Math.log10(f / 8000);
+            correction = 0.7 - (logRatio * 0.2);
         }
         
-        // 補正値を0.5-1.5の範囲に制限
-        return Math.max(0.5, Math.min(1.5, correction));
+        // 補正値を0.4-1.6の範囲に制限
+        return Math.max(0.4, Math.min(1.6, correction));
     }
     
     createOscillator(frequency) {
