@@ -26,6 +26,7 @@ class TwelveToneLoop {
         
         this.initializeElements();
         this.setupEventListeners();
+        this.setupBackgroundPlayback();
         this.loadSettings();
     }
     
@@ -105,6 +106,17 @@ class TwelveToneLoop {
     async initializeAudioContext() {
         if (!this.audioContext) {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // AudioContextの状態変更を監視
+            this.audioContext.addEventListener('statechange', () => {
+                console.log('AudioContext状態:', this.audioContext.state);
+                if (this.audioContext.state === 'suspended' && this.isPlaying) {
+                    console.log('AudioContextが停止されました。再開を試みます...');
+                    this.audioContext.resume().catch(err => {
+                        console.warn('AudioContextの再開に失敗:', err);
+                    });
+                }
+            });
         }
         
         if (this.audioContext.state === 'suspended') {
@@ -340,6 +352,52 @@ class TwelveToneLoop {
             this.stop();
             setTimeout(() => this.start(), 100);
         }
+    }
+    
+    // バックグラウンド再生のセットアップ
+    setupBackgroundPlayback() {
+        // ページの可視性変更を監視
+        document.addEventListener('visibilitychange', () => {
+            if (this.audioContext && this.isPlaying) {
+                if (document.hidden) {
+                    // バックグラウンドに移行時
+                    console.log('バックグラウンド再生を継続します');
+                } else {
+                    // フォアグラウンドに復帰時
+                    console.log('フォアグラウンドに復帰しました');
+                    // AudioContextが停止している場合は再開
+                    if (this.audioContext.state === 'suspended') {
+                        this.audioContext.resume();
+                    }
+                }
+            }
+        });
+        
+        // ウィンドウのフォーカス変更を監視
+        window.addEventListener('blur', () => {
+            if (this.audioContext && this.isPlaying) {
+                console.log('ウィンドウがフォーカスを失いましたが、再生を継続します');
+            }
+        });
+        
+        window.addEventListener('focus', () => {
+            if (this.audioContext && this.isPlaying) {
+                console.log('ウィンドウがフォーカスを取得しました');
+                // AudioContextが停止している場合は再開
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }
+        });
+        
+        // ページのアンロード前に警告（オプション）
+        window.addEventListener('beforeunload', (e) => {
+            if (this.isPlaying) {
+                e.preventDefault();
+                e.returnValue = '音楽が再生中です。ページを離れますか？';
+                return e.returnValue;
+            }
+        });
     }
     
     // 設定をCookieに保存
