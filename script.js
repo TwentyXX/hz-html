@@ -312,7 +312,7 @@ class TwelveToneLoop {
             const correctionInfo = this.loudnessCorrection ? ' [補正済]' : '';
             const wakeLockInfo = this.wakeLock ? ' [画面オン]' : '';
             const mediaSessionInfo = this.mediaSessionEnabled ? ' [メディア]' : '';
-            this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)${correctionInfo}${wakeLockInfo}${mediaSessionInfo}`;
+            this.currentNoteDisplay.textContent = `${noteName} (${frequency.toFixed(1)} Hz)`;
             
         } catch (error) {
             console.error('音の再生に失敗しました:', error);
