@@ -181,7 +181,7 @@ class TwelveToneLoop {
         if (!this.loudnessCorrection) return 1.0;
         
         // 5歳児の聴覚特性に合わせた補正（高音域の感度が非常に高い）
-        // 1kHz付近を基準として、他の周波数での相対的な音量調整
+        // 440Hz（A4）付近から減衰を開始
         const f = frequency;
         
         // 5歳向けの等ラウドネス曲線の近似
@@ -191,31 +191,30 @@ class TwelveToneLoop {
             // 極低音域の補正（250Hz以下）- 大幅に強調
             const logRatio = Math.log10(250 / f);
             correction = 1.0 + (logRatio * 0.8); // 低音域を大幅に強調
-        } else if (f < 500) {
-            // 低音域の補正（250Hz-500Hz）
-            const logRatio = Math.log10(500 / f);
-            correction = 1.0 + (logRatio * 0.7);
-        } else if (f < 1000) {
-            // 中低音域の補正（500Hz-1kHz）
-            const logRatio = Math.log10(1000 / f);
-            correction = 1.0 + (logRatio * 0.5);
-        } else if (f < 1500) {
-            // 中音域（1-1.5kHz）- 基準域
-            correction = 1.0;
-        } else if (f < 3000) {
-            // 中高音域（1.5-3kHz）- 5歳児は感度が高いので抑制
-            correction = 0.6;
-        } else if (f < 6000) {
-            // 高音域（3-6kHz）- 大幅に抑制
-            correction = 0.4;
+        } else if (f < 440) {
+            // 低音域の補正（250Hz-440Hz）
+            const logRatio = Math.log10(440 / f);
+            correction = 1.0 + (logRatio * 0.6);
+        } else if (f < 880) {
+            // 440Hz（A4）から880Hz（A5）まで - 徐々に減衰開始
+            const ratio = (f - 440) / (880 - 440);
+            correction = 1.0 - (ratio * 0.3); // 440Hzから徐々に減衰
+        } else if (f < 1760) {
+            // 880Hz-1760Hz - 更に減衰
+            const ratio = (f - 880) / (1760 - 880);
+            correction = 0.7 - (ratio * 0.2);
+        } else if (f < 3520) {
+            // 1760Hz-3520Hz - 大幅に減衰
+            const ratio = (f - 1760) / (3520 - 1760);
+            correction = 0.5 - (ratio * 0.2);
         } else {
-            // 超高音域（6kHz以上）- 非常に大幅に抑制
-            const logRatio = Math.log10(f / 6000);
-            correction = 0.4 - (logRatio * 0.3);
+            // 3520Hz以上 - 非常に大幅に減衰
+            const logRatio = Math.log10(f / 3520);
+            correction = 0.3 - (logRatio * 0.2);
         }
         
-        // 補正値を0.2-2.0の範囲に制限
-        return Math.max(0.2, Math.min(2.0, correction));
+        // 補正値を0.1-2.0の範囲に制限
+        return Math.max(0.1, Math.min(2.0, correction));
     }
     
     createOscillator(frequency) {
