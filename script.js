@@ -212,12 +212,12 @@ class TwelveToneLoop {
             // 660Hz-880Hz - 75%減衰
             const ratio = (f - 660) / (880 - 660);
             correction = 0.3 - (ratio * 0.05); // 30%から25%へ
-        } else if (f < 1320) {
-            // 880Hz-1320Hz - 85%減衰
-            const ratio = (f - 880) / (1320 - 880);
+        } else if (f < 1760) {
+            // 880Hz-1760Hz - 85%減衰
+            const ratio = (f - 880) / (1760 - 880);
             correction = 0.25 - (ratio * 0.1); // 25%から15%へ
         } else {
-            // 1320Hz以上 - 90%減衰で安定
+            // 1760Hz以上 - 90%減衰で安定
             correction = 0.1;
         }
         
