@@ -220,20 +220,26 @@ class TwelveToneLoop {
             this.intervalId = setInterval(() => {
                 if (this.isReverse) {
                     this.currentNoteIndex--;
-                    if (this.currentNoteIndex < 0) {
+                    if (this.currentNoteIndex <= 0) {
+                        // 最初の音を再生してからループを完了
+                        if (this.currentNoteIndex === 0) {
+                            this.playNote(this.currentNoteIndex);
+                        }
                         this.loopCount++;
                         this.isReverse = this.loopCount % 2 === 1;
                         this.currentNoteIndex = this.isReverse ? this.totalNotes - 1 : 0;
-                        // ループ完了時は音を再生せずに次の間隔まで待つ
                         return;
                     }
                 } else {
                     this.currentNoteIndex++;
-                    if (this.currentNoteIndex >= this.totalNotes) {
+                    if (this.currentNoteIndex >= this.totalNotes - 1) {
+                        // 最後の音を再生してからループを完了
+                        if (this.currentNoteIndex === this.totalNotes - 1) {
+                            this.playNote(this.currentNoteIndex);
+                        }
                         this.loopCount++;
                         this.isReverse = this.loopCount % 2 === 1;
                         this.currentNoteIndex = this.isReverse ? this.totalNotes - 1 : 0;
-                        // ループ完了時は音を再生せずに次の間隔まで待つ
                         return;
                     }
                 }
