@@ -128,23 +128,42 @@ class TwelveToneLoop {
     }
     
     async initializeAudioContext() {
-        if (!this.audioContext) {
-            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // AudioContextの状態変更を監視
-            this.audioContext.addEventListener('statechange', () => {
-                console.log('AudioContext状態:', this.audioContext.state);
-                if (this.audioContext.state === 'suspended' && this.isPlaying) {
-                    console.log('AudioContextが停止されました。再開を試みます...');
-                    this.audioContext.resume().catch(err => {
-                        console.warn('AudioContextの再開に失敗:', err);
-                    });
+        try {
+            if (!this.audioContext) {
+                // Web Audio APIのサポート確認
+                if (!window.AudioContext && !window.webkitAudioContext) {
+                    throw new Error('Web Audio APIがサポートされていません');
                 }
-            });
-        }
-        
-        if (this.audioContext.state === 'suspended') {
-            await this.audioContext.resume();
+                
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // AudioContextの状態変更を監視
+                this.audioContext.addEventListener('statechange', () => {
+                    console.log('AudioContext状態:', this.audioContext.state);
+                    if (this.audioContext.state === 'suspended' && this.isPlaying) {
+                        console.log('AudioContextが停止されました。再開を試みます...');
+                        this.audioContext.resume().catch(err => {
+                            console.warn('AudioContextの再開に失敗:', err);
+                        });
+                    }
+                });
+            }
+            
+            // AudioContextの状態を確認
+            if (this.audioContext.state === 'suspended') {
+                console.log('AudioContextを再開します...');
+                await this.audioContext.resume();
+            }
+            
+            if (this.audioContext.state === 'closed') {
+                throw new Error('AudioContextが閉じられています');
+            }
+            
+            console.log('AudioContext初期化完了:', this.audioContext.state);
+            
+        } catch (error) {
+            console.error('AudioContext初期化エラー:', error);
+            throw error;
         }
     }
     
@@ -280,23 +299,30 @@ class TwelveToneLoop {
     }
     
     playNote(relativeIndex) {
-        if (this.oscillator) {
-            this.oscillator.stop();
+        try {
+            if (this.oscillator) {
+                this.oscillator.stop();
+            }
+            
+            const frequency = this.calculateFrequency(relativeIndex);
+            this.oscillator = this.createOscillator(frequency);
+            this.oscillator.start();
+            
+            // 音名を表示
+            const startIndex = this.keyToAbsoluteIndex(this.startKey);
+            const absoluteIndex = startIndex + relativeIndex;
+            const noteName = this.absoluteIndexToKey(absoluteIndex);
+            const direction = this.isReverse ? '(逆順)' : '(順方向)';
+            const correctionInfo = this.loudnessCorrection ? ' [補正済]' : '';
+            const wakeLockInfo = this.wakeLock ? ' [画面オン]' : '';
+            const mediaSessionInfo = this.mediaSessionEnabled ? ' [メディア]' : '';
+            this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)${correctionInfo}${wakeLockInfo}${mediaSessionInfo}`;
+            
+        } catch (error) {
+            console.error('音の再生に失敗しました:', error);
+            // エラーが発生した場合は再生を停止
+            this.stop();
         }
-        
-        const frequency = this.calculateFrequency(relativeIndex);
-        this.oscillator = this.createOscillator(frequency);
-        this.oscillator.start();
-        
-        // 音名を表示
-        const startIndex = this.keyToAbsoluteIndex(this.startKey);
-        const absoluteIndex = startIndex + relativeIndex;
-        const noteName = this.absoluteIndexToKey(absoluteIndex);
-        const direction = this.isReverse ? '(逆順)' : '(順方向)';
-        const correctionInfo = this.loudnessCorrection ? ' [補正済]' : '';
-        const wakeLockInfo = this.wakeLock ? ' [画面オン]' : '';
-        const mediaSessionInfo = this.mediaSessionEnabled ? ' [メディア]' : '';
-        this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)${correctionInfo}${wakeLockInfo}${mediaSessionInfo}`;
     }
     
     async start() {
@@ -352,7 +378,27 @@ class TwelveToneLoop {
             
         } catch (error) {
             console.error('オーディオの初期化に失敗しました:', error);
-            alert('オーディオの初期化に失敗しました。ブラウザがWeb Audio APIをサポートしているか確認してください。');
+            this.isPlaying = false;
+            this.startBtn.disabled = false;
+            this.stopBtn.disabled = true;
+            
+            let errorMessage = 'オーディオの初期化に失敗しました。\n\n';
+            
+            if (error.name === 'NotAllowedError') {
+                errorMessage += 'ブラウザがオーディオの再生を許可していません。\n' +
+                              'ページを更新してから再度お試しください。';
+            } else if (error.name === 'NotSupportedError') {
+                errorMessage += 'お使いのブラウザはWeb Audio APIをサポートしていません。\n' +
+                              'Chrome、Firefox、Safari、Edgeなどの最新ブラウザをお使いください。';
+            } else {
+                errorMessage += 'エラー詳細: ' + error.message + '\n\n' +
+                              '以下をお試しください：\n' +
+                              '• ページを更新する\n' +
+                              '• 他のタブで音楽が再生されていないか確認する\n' +
+                              '• ブラウザを再起動する';
+            }
+            
+            alert(errorMessage);
         }
     }
     
