@@ -240,15 +240,15 @@ class TwelveToneLoop {
         return this.baseFrequency * Math.pow(2, semitonesFromA4 / 12);
     }
     
-    // 5歳向け等ラウドネス曲線に基づく音量補正を計算
+    // 等ラウドネス曲線に基づく音量補正を計算
     calculateLoudnessCorrection(frequency) {
         if (!this.loudnessCorrection) return 1.0;
         
-        // 5歳児の聴覚特性に合わせた補正（高音域の感度が非常に高い）
+        // 聴覚特性に合わせた補正（高音域の感度が非常に高い）
         // 440Hz（A4）付近から減衰を開始
         const f = frequency;
         
-        // 5歳向けの等ラウドネス曲線の近似
+        // 等ラウドネス曲線の近似
         let correction = 1.0;
         
         if (f < 220) {
