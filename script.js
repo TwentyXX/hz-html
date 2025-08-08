@@ -17,9 +17,11 @@ class TwelveToneLoop {
         this.tempo = 120; // BPM
         this.volume = 0.5; // 0-1
         this.baseFrequency = 440; // A4の周波数
-        this.startOctave = 4; // 開始オクターブ
-        this.endOctave = 4; // 終了オクターブ
+        this.startKey = 'C4'; // 開始キー
+        this.endKey = 'B4'; // 終了キー
         this.totalNotes = 12; // 再生する音の総数
+        this.loopCount = 0; // ループ回数
+        this.isReverse = false; // 逆順フラグ
         
         this.initializeElements();
         this.setupEventListeners();
@@ -35,10 +37,10 @@ class TwelveToneLoop {
         this.volumeValue = document.getElementById('volumeValue');
         this.baseFreqSlider = document.getElementById('baseFreqSlider');
         this.baseFreqValue = document.getElementById('baseFreqValue');
-        this.startOctaveSlider = document.getElementById('startOctaveSlider');
-        this.startOctaveValue = document.getElementById('startOctaveValue');
-        this.endOctaveSlider = document.getElementById('endOctaveSlider');
-        this.endOctaveValue = document.getElementById('endOctaveValue');
+        this.startKeySelect = document.getElementById('startKeySelect');
+        this.startKeyValue = document.getElementById('startKeyValue');
+        this.endKeySelect = document.getElementById('endKeySelect');
+        this.endKeyValue = document.getElementById('endKeyValue');
     }
     
     setupEventListeners() {
@@ -66,15 +68,15 @@ class TwelveToneLoop {
             this.baseFreqValue.textContent = this.baseFrequency;
         });
         
-        this.startOctaveSlider.addEventListener('input', (e) => {
-            this.startOctave = parseInt(e.target.value);
-            this.startOctaveValue.textContent = this.startOctave;
+        this.startKeySelect.addEventListener('change', (e) => {
+            this.startKey = e.target.value;
+            this.startKeyValue.textContent = this.startKey;
             this.updateNoteRange();
         });
         
-        this.endOctaveSlider.addEventListener('input', (e) => {
-            this.endOctave = parseInt(e.target.value);
-            this.endOctaveValue.textContent = this.endOctave;
+        this.endKeySelect.addEventListener('change', (e) => {
+            this.endKey = e.target.value;
+            this.endKeyValue.textContent = this.endKey;
             this.updateNoteRange();
         });
     }
@@ -89,18 +91,40 @@ class TwelveToneLoop {
         }
     }
     
-    // オクターブ範囲を更新
+    // キー文字列を絶対音程インデックスに変換
+    keyToAbsoluteIndex(key) {
+        const noteMatch = key.match(/^([A-G]#?)(\d+)$/);
+        if (!noteMatch) return 0;
+        
+        const noteName = noteMatch[1];
+        const octave = parseInt(noteMatch[2]);
+        
+        const noteIndex = this.noteNames.indexOf(noteName);
+        return (octave - 1) * 12 + noteIndex;
+    }
+    
+    // 絶対音程インデックスからキー文字列に変換
+    absoluteIndexToKey(absoluteIndex) {
+        const noteIndex = absoluteIndex % 12;
+        const octave = Math.floor(absoluteIndex / 12) + 1;
+        return this.noteNames[noteIndex] + octave;
+    }
+    
+    // キー範囲を更新
     updateNoteRange() {
-        // 開始オクターブが終了オクターブより大きい場合は調整
-        if (this.startOctave > this.endOctave) {
-            this.endOctave = this.startOctave;
-            this.endOctaveSlider.value = this.endOctave;
-            this.endOctaveValue.textContent = this.endOctave;
+        const startIndex = this.keyToAbsoluteIndex(this.startKey);
+        const endIndex = this.keyToAbsoluteIndex(this.endKey);
+        
+        // 開始キーが終了キーより大きい場合は調整
+        if (startIndex > endIndex) {
+            this.endKey = this.startKey;
+            this.endKeySelect.value = this.endKey;
+            this.endKeyValue.textContent = this.endKey;
         }
         
         // 総音数を計算
-        const octaveRange = this.endOctave - this.startOctave + 1;
-        this.totalNotes = octaveRange * 12;
+        const adjustedEndIndex = this.keyToAbsoluteIndex(this.endKey);
+        this.totalNotes = adjustedEndIndex - startIndex + 1;
         
         // 再生中の場合は再開
         if (this.isPlaying) {
@@ -108,24 +132,13 @@ class TwelveToneLoop {
         }
     }
     
-    // 絶対音程インデックスから音名とオクターブを取得
-    getNoteInfo(absoluteNoteIndex) {
-        const noteIndex = absoluteNoteIndex % 12;
-        const octave = this.startOctave + Math.floor(absoluteNoteIndex / 12);
-        return {
-            noteName: this.noteNames[noteIndex],
-            octave: octave,
-            noteIndex: noteIndex
-        };
-    }
-    
     // 12平均律で音程を計算（A4 = 440Hzを基準）
-    calculateFrequency(absoluteNoteIndex) {
-        const noteInfo = this.getNoteInfo(absoluteNoteIndex);
+    calculateFrequency(relativeIndex) {
+        const startIndex = this.keyToAbsoluteIndex(this.startKey);
+        const absoluteIndex = startIndex + relativeIndex;
         
-        // A4を基準とした半音の差を計算
-        // C4からA4までは9半音（C, C#, D, D#, E, F, F#, G, G#, A）
-        const semitonesFromA4 = (noteInfo.octave - 4) * 12 + (noteInfo.noteIndex - 9);
+        // A4を基準とした半音の差を計算（A4は絶対インデックス57）
+        const semitonesFromA4 = absoluteIndex - 57;
         return this.baseFrequency * Math.pow(2, semitonesFromA4 / 12);
     }
     
@@ -143,19 +156,21 @@ class TwelveToneLoop {
         return oscillator;
     }
     
-    playNote(absoluteNoteIndex) {
+    playNote(relativeIndex) {
         if (this.oscillator) {
             this.oscillator.stop();
         }
         
-        const frequency = this.calculateFrequency(absoluteNoteIndex);
+        const frequency = this.calculateFrequency(relativeIndex);
         this.oscillator = this.createOscillator(frequency);
         this.oscillator.start();
         
         // 音名を表示
-        const noteInfo = this.getNoteInfo(absoluteNoteIndex);
-        const noteName = noteInfo.noteName + noteInfo.octave;
-        this.currentNoteDisplay.textContent = `${noteName} (${frequency.toFixed(1)} Hz)`;
+        const startIndex = this.keyToAbsoluteIndex(this.startKey);
+        const absoluteIndex = startIndex + relativeIndex;
+        const noteName = this.absoluteIndexToKey(absoluteIndex);
+        const direction = this.isReverse ? '(逆順)' : '(順方向)';
+        this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)`;
     }
     
     async start() {
@@ -175,7 +190,21 @@ class TwelveToneLoop {
             const interval = (60 / this.tempo) * 1000;
             
             this.intervalId = setInterval(() => {
-                this.currentNoteIndex = (this.currentNoteIndex + 1) % this.totalNotes;
+                if (this.isReverse) {
+                    this.currentNoteIndex--;
+                    if (this.currentNoteIndex < 0) {
+                        this.currentNoteIndex = this.totalNotes - 1;
+                        this.loopCount++;
+                        this.isReverse = this.loopCount % 2 === 1;
+                    }
+                } else {
+                    this.currentNoteIndex++;
+                    if (this.currentNoteIndex >= this.totalNotes) {
+                        this.currentNoteIndex = 0;
+                        this.loopCount++;
+                        this.isReverse = this.loopCount % 2 === 1;
+                    }
+                }
                 this.playNote(this.currentNoteIndex);
             }, interval);
             
@@ -204,6 +233,8 @@ class TwelveToneLoop {
         
         this.currentNoteDisplay.textContent = '停止中';
         this.currentNoteIndex = 0;
+        this.loopCount = 0;
+        this.isReverse = false;
     }
     
     restart() {
