@@ -513,13 +513,7 @@ class TwelveToneLoop {
             album: `テンポ: ${this.tempo} BPM | 音量: ${Math.round(this.volume * 100)}%`,
             artwork: [
                 {
-                    src: 'data:image/svg+xml;base64,' + btoa(`
-                        <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-                            <rect width="256" height="256" fill="#2196F3"/>
-                            <text x="128" y="140" text-anchor="middle" fill="white" font-size="48" font-family="Arial">♪</text>
-                            <text x="128" y="180" text-anchor="middle" fill="white" font-size="16" font-family="Arial">${range}</text>
-                        </svg>
-                    `),
+                    src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" fill="#2196F3"/><text x="128" y="140" text-anchor="middle" fill="white" font-size="48" font-family="Arial">♪</text><text x="128" y="180" text-anchor="middle" fill="white" font-size="16" font-family="Arial">${range}</text></svg>`),
                     sizes: '256x256',
                     type: 'image/svg+xml'
                 }
