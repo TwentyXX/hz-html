@@ -22,6 +22,7 @@ class TwelveToneLoop {
         this.totalNotes = 12; // 再生する音の総数
         this.loopCount = 0; // ループ回数
         this.isReverse = false; // 逆順フラグ
+        this.loudnessCorrection = true; // ラウドネス補正フラグ
         
         this.initializeElements();
         this.setupEventListeners();
@@ -43,6 +44,7 @@ class TwelveToneLoop {
         this.endNoteSelect = document.getElementById('endNoteSelect');
         this.endOctaveSelect = document.getElementById('endOctaveSelect');
         this.endKeyValue = document.getElementById('endKeyValue');
+        this.loudnessCorrectionCheckbox = document.getElementById('loudnessCorrection');
     }
     
     setupEventListeners() {
@@ -84,6 +86,10 @@ class TwelveToneLoop {
         
         this.endOctaveSelect.addEventListener('change', () => {
             this.updateEndKey();
+        });
+        
+        this.loudnessCorrectionCheckbox.addEventListener('change', (e) => {
+            this.loudnessCorrection = e.target.checked;
         });
     }
     
@@ -170,13 +176,49 @@ class TwelveToneLoop {
         return this.baseFrequency * Math.pow(2, semitonesFromA4 / 12);
     }
     
+    // 等ラウドネス曲線に基づく音量補正を計算
+    calculateLoudnessCorrection(frequency) {
+        if (!this.loudnessCorrection) return 1.0;
+        
+        // ISO 226:2003 等ラウドネス曲線の近似式（40phon基準）
+        // 1kHz付近を基準として、他の周波数での相対的な音量調整
+        const f = frequency;
+        
+        // 簡略化された等ラウドネス曲線の近似
+        // 低音域と高音域での聴覚感度の低下を補正
+        let correction = 1.0;
+        
+        if (f < 1000) {
+            // 低音域の補正（1kHz以下）
+            const logRatio = Math.log10(1000 / f);
+            correction = 1.0 + (logRatio * 0.3); // 低音域を強調
+        } else if (f > 1000) {
+            // 高音域の補正（1kHz以上）
+            if (f < 4000) {
+                // 1-4kHzは聴覚感度が高いので少し抑制
+                correction = 0.9;
+            } else {
+                // 4kHz以上は徐々に補正を強化
+                const logRatio = Math.log10(f / 4000);
+                correction = 0.9 + (logRatio * 0.2);
+            }
+        }
+        
+        // 補正値を0.5-1.5の範囲に制限
+        return Math.max(0.5, Math.min(1.5, correction));
+    }
+    
     createOscillator(frequency) {
         const oscillator = this.audioContext.createOscillator();
         this.gainNode = this.audioContext.createGain();
         
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
-        this.gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
+        
+        // ラウドネス補正を適用した音量を設定
+        const loudnessCorrection = this.calculateLoudnessCorrection(frequency);
+        const adjustedVolume = this.volume * loudnessCorrection;
+        this.gainNode.gain.setValueAtTime(adjustedVolume, this.audioContext.currentTime);
         
         oscillator.connect(this.gainNode);
         this.gainNode.connect(this.audioContext.destination);
@@ -198,7 +240,8 @@ class TwelveToneLoop {
         const absoluteIndex = startIndex + relativeIndex;
         const noteName = this.absoluteIndexToKey(absoluteIndex);
         const direction = this.isReverse ? '(逆順)' : '(順方向)';
-        this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)`;
+        const correctionInfo = this.loudnessCorrection ? ' [補正済]' : '';
+        this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)${correctionInfo}`;
     }
     
     async start() {
