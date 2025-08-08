@@ -37,9 +37,11 @@ class TwelveToneLoop {
         this.volumeValue = document.getElementById('volumeValue');
         this.baseFreqSlider = document.getElementById('baseFreqSlider');
         this.baseFreqValue = document.getElementById('baseFreqValue');
-        this.startKeySelect = document.getElementById('startKeySelect');
+        this.startNoteSelect = document.getElementById('startNoteSelect');
+        this.startOctaveSelect = document.getElementById('startOctaveSelect');
         this.startKeyValue = document.getElementById('startKeyValue');
-        this.endKeySelect = document.getElementById('endKeySelect');
+        this.endNoteSelect = document.getElementById('endNoteSelect');
+        this.endOctaveSelect = document.getElementById('endOctaveSelect');
         this.endKeyValue = document.getElementById('endKeyValue');
     }
     
@@ -68,16 +70,20 @@ class TwelveToneLoop {
             this.baseFreqValue.textContent = this.baseFrequency;
         });
         
-        this.startKeySelect.addEventListener('change', (e) => {
-            this.startKey = e.target.value;
-            this.startKeyValue.textContent = this.startKey;
-            this.updateNoteRange();
+        this.startNoteSelect.addEventListener('change', () => {
+            this.updateStartKey();
         });
         
-        this.endKeySelect.addEventListener('change', (e) => {
-            this.endKey = e.target.value;
-            this.endKeyValue.textContent = this.endKey;
-            this.updateNoteRange();
+        this.startOctaveSelect.addEventListener('change', () => {
+            this.updateStartKey();
+        });
+        
+        this.endNoteSelect.addEventListener('change', () => {
+            this.updateEndKey();
+        });
+        
+        this.endOctaveSelect.addEventListener('change', () => {
+            this.updateEndKey();
         });
     }
     
@@ -110,6 +116,24 @@ class TwelveToneLoop {
         return this.noteNames[noteIndex] + octave;
     }
     
+    // 開始キーを更新
+    updateStartKey() {
+        const note = this.startNoteSelect.value;
+        const octave = this.startOctaveSelect.value;
+        this.startKey = note + octave;
+        this.startKeyValue.textContent = this.startKey;
+        this.updateNoteRange();
+    }
+    
+    // 終了キーを更新
+    updateEndKey() {
+        const note = this.endNoteSelect.value;
+        const octave = this.endOctaveSelect.value;
+        this.endKey = note + octave;
+        this.endKeyValue.textContent = this.endKey;
+        this.updateNoteRange();
+    }
+    
     // キー範囲を更新
     updateNoteRange() {
         const startIndex = this.keyToAbsoluteIndex(this.startKey);
@@ -118,8 +142,12 @@ class TwelveToneLoop {
         // 開始キーが終了キーより大きい場合は調整
         if (startIndex > endIndex) {
             this.endKey = this.startKey;
-            this.endKeySelect.value = this.endKey;
-            this.endKeyValue.textContent = this.endKey;
+            const noteMatch = this.endKey.match(/^([A-G]#?)(\d+)$/);
+            if (noteMatch) {
+                this.endNoteSelect.value = noteMatch[1];
+                this.endOctaveSelect.value = noteMatch[2];
+                this.endKeyValue.textContent = this.endKey;
+            }
         }
         
         // 総音数を計算
@@ -193,16 +221,16 @@ class TwelveToneLoop {
                 if (this.isReverse) {
                     this.currentNoteIndex--;
                     if (this.currentNoteIndex < 0) {
-                        this.currentNoteIndex = this.totalNotes - 1;
                         this.loopCount++;
                         this.isReverse = this.loopCount % 2 === 1;
+                        this.currentNoteIndex = this.isReverse ? this.totalNotes - 1 : 0;
                     }
                 } else {
                     this.currentNoteIndex++;
                     if (this.currentNoteIndex >= this.totalNotes) {
-                        this.currentNoteIndex = 0;
                         this.loopCount++;
                         this.isReverse = this.loopCount % 2 === 1;
+                        this.currentNoteIndex = this.isReverse ? this.totalNotes - 1 : 0;
                     }
                 }
                 this.playNote(this.currentNoteIndex);
