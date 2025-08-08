@@ -200,14 +200,14 @@ class TwelveToneLoop {
             // 極低音域の補正（250Hz以下）- 大幅に強調
             const logRatio = Math.log10(250 / f);
             correction = 1.0 + (logRatio * 0.8); // 低音域を大幅に強調
-        } else if (f < 440) {
-            // 低音域の補正（250Hz-440Hz）
-            const logRatio = Math.log10(440 / f);
+        } else if (f < 220) {
+            // 低音域の補正（250Hz-220Hz）
+            const logRatio = Math.log10(220 / f);
             correction = 1.0 + (logRatio * 0.6);
         } else if (f < 660) {
-            // 440Hz-660Hz - 70%減衰を目安に調整
-            const ratio = (f - 440) / (660 - 440);
-            correction = 1.0 - (ratio * 0.7); // 440Hzから70%減衰
+            // 220Hz-660Hz - 70%減衰を目安に調整
+            const ratio = (f - 220) / (660 - 220);
+            correction = 1.0 - (ratio * 0.7); // 220Hzから70%減衰
         } else if (f < 880) {
             // 660Hz-880Hz - 75%減衰
             const ratio = (f - 660) / (880 - 660);
