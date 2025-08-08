@@ -165,8 +165,8 @@ class TwelveToneLoop {
         const startIndex = this.keyToAbsoluteIndex(this.startKey);
         const absoluteIndex = startIndex + relativeIndex;
         
-        // A4を基準とした半音の差を計算（A4は絶対インデックス57）
-        const semitonesFromA4 = absoluteIndex - 57;
+        // A4を基準とした半音の差を計算（A4は絶対インデックス45: (4-1)*12 + 9 = 45）
+        const semitonesFromA4 = absoluteIndex - 45;
         return this.baseFrequency * Math.pow(2, semitonesFromA4 / 12);
     }
     
