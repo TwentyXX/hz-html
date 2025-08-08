@@ -1,0 +1,16 @@
+{
+  "name": "twelve-tone-loop",
+  "version": "1.0.0",
+  "description": "12音正弦波ループWebアプリケーション",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["audio", "twelve-tone", "web-audio-api", "music"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
