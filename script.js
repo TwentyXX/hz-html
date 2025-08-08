@@ -26,6 +26,7 @@ class TwelveToneLoop {
         
         this.initializeElements();
         this.setupEventListeners();
+        this.loadSettings();
     }
     
     initializeElements() {
@@ -54,6 +55,7 @@ class TwelveToneLoop {
         this.tempoSlider.addEventListener('input', (e) => {
             this.tempo = parseInt(e.target.value);
             this.tempoValue.textContent = this.tempo;
+            this.saveSettings();
             if (this.isPlaying) {
                 this.restart();
             }
@@ -62,6 +64,7 @@ class TwelveToneLoop {
         this.volumeSlider.addEventListener('input', (e) => {
             this.volume = parseInt(e.target.value) / 100;
             this.volumeValue.textContent = e.target.value;
+            this.saveSettings();
             if (this.gainNode) {
                 this.gainNode.gain.value = this.volume;
             }
@@ -70,26 +73,32 @@ class TwelveToneLoop {
         this.baseFreqSlider.addEventListener('input', (e) => {
             this.baseFrequency = parseInt(e.target.value);
             this.baseFreqValue.textContent = this.baseFrequency;
+            this.saveSettings();
         });
         
         this.startNoteSelect.addEventListener('change', () => {
             this.updateStartKey();
+            this.saveSettings();
         });
         
         this.startOctaveSelect.addEventListener('change', () => {
             this.updateStartKey();
+            this.saveSettings();
         });
         
         this.endNoteSelect.addEventListener('change', () => {
             this.updateEndKey();
+            this.saveSettings();
         });
         
         this.endOctaveSelect.addEventListener('change', () => {
             this.updateEndKey();
+            this.saveSettings();
         });
         
         this.loudnessCorrectionCheckbox.addEventListener('change', (e) => {
             this.loudnessCorrection = e.target.checked;
+            this.saveSettings();
         });
     }
     
@@ -331,6 +340,88 @@ class TwelveToneLoop {
             this.stop();
             setTimeout(() => this.start(), 100);
         }
+    }
+    
+    // 設定をCookieに保存
+    saveSettings() {
+        const settings = {
+            tempo: this.tempo,
+            volume: this.volume,
+            baseFrequency: this.baseFrequency,
+            startKey: this.startKey,
+            endKey: this.endKey,
+            loudnessCorrection: this.loudnessCorrection
+        };
+        
+        const expires = new Date();
+        expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1年後
+        document.cookie = `twelveToneSettings=${JSON.stringify(settings)}; expires=${expires.toUTCString()}; path=/`;
+    }
+    
+    // Cookieから設定を読み込み
+    loadSettings() {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'twelveToneSettings') {
+                try {
+                    const settings = JSON.parse(decodeURIComponent(value));
+                    this.applySettings(settings);
+                } catch (error) {
+                    console.warn('設定の読み込みに失敗しました:', error);
+                }
+                break;
+            }
+        }
+    }
+    
+    // 設定を適用
+    applySettings(settings) {
+        if (settings.tempo !== undefined) {
+            this.tempo = settings.tempo;
+            this.tempoSlider.value = settings.tempo;
+            this.tempoValue.textContent = settings.tempo;
+        }
+        
+        if (settings.volume !== undefined) {
+            this.volume = settings.volume;
+            this.volumeSlider.value = Math.round(settings.volume * 100);
+            this.volumeValue.textContent = Math.round(settings.volume * 100);
+        }
+        
+        if (settings.baseFrequency !== undefined) {
+            this.baseFrequency = settings.baseFrequency;
+            this.baseFreqSlider.value = settings.baseFrequency;
+            this.baseFreqValue.textContent = settings.baseFrequency;
+        }
+        
+        if (settings.loudnessCorrection !== undefined) {
+            this.loudnessCorrection = settings.loudnessCorrection;
+            this.loudnessCorrectionCheckbox.checked = settings.loudnessCorrection;
+        }
+        
+        if (settings.startKey !== undefined) {
+            this.startKey = settings.startKey;
+            const startMatch = settings.startKey.match(/^([A-G]#?)(\d+)$/);
+            if (startMatch) {
+                this.startNoteSelect.value = startMatch[1];
+                this.startOctaveSelect.value = startMatch[2];
+                this.startKeyValue.textContent = settings.startKey;
+            }
+        }
+        
+        if (settings.endKey !== undefined) {
+            this.endKey = settings.endKey;
+            const endMatch = settings.endKey.match(/^([A-G]#?)(\d+)$/);
+            if (endMatch) {
+                this.endNoteSelect.value = endMatch[1];
+                this.endOctaveSelect.value = endMatch[2];
+                this.endKeyValue.textContent = settings.endKey;
+            }
+        }
+        
+        // 音域を更新
+        this.updateNoteRange();
     }
 }
 
