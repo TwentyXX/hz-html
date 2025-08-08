@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>12音正弦波ループ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            font-size: 18px;
+            padding: 12px 24px;
+            margin: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .start-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .start-btn:hover {
+            background-color: #45a049;
+        }
+        .stop-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .stop-btn:hover {
+            background-color: #da190b;
+        }
+        .current-note {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #2196F3;
+        }
+        .note-display {
+            background-color: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .controls-group {
+            margin: 20px 0;
+        }
+        label {
+            display: inline-block;
+            margin: 10px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 200px;
+            margin: 0 10px;
+        }
+        .value-display {
+            font-weight: normal;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>12音正弦波ループ</h1>
+        
+        <div class="note-display">
+            <div class="current-note" id="currentNote">準備完了</div>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" class="start-btn">開始</button>
+            <button id="stopBtn" class="stop-btn">停止</button>
+        </div>
+        
+        <div class="controls-group">
+            <label>
+                テンポ: <span class="value-display" id="tempoValue">120</span> BPM
+                <br>
+                <input type="range" id="tempoSlider" min="60" max="200" value="120">
+            </label>
+        </div>
+        
+        <div class="controls-group">
+            <label>
+                音量: <span class="value-display" id="volumeValue">50</span>%
+                <br>
+                <input type="range" id="volumeSlider" min="0" max="100" value="50">
+            </label>
+        </div>
+        
+        <div class="controls-group">
+            <label>
+                基準音 (A4): <span class="value-display" id="baseFreqValue">440</span> Hz
+                <br>
+                <input type="range" id="baseFreqSlider" min="400" max="480" value="440">
+            </label>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
