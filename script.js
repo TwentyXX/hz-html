@@ -176,42 +176,46 @@ class TwelveToneLoop {
         return this.baseFrequency * Math.pow(2, semitonesFromA4 / 12);
     }
     
-    // 10代向け等ラウドネス曲線に基づく音量補正を計算
+    // 5歳向け等ラウドネス曲線に基づく音量補正を計算
     calculateLoudnessCorrection(frequency) {
         if (!this.loudnessCorrection) return 1.0;
         
-        // 10代の聴覚特性に合わせた補正（高音域の感度が高い）
+        // 5歳児の聴覚特性に合わせた補正（高音域の感度が非常に高い）
         // 1kHz付近を基準として、他の周波数での相対的な音量調整
         const f = frequency;
         
-        // 10代向けの等ラウドネス曲線の近似
+        // 5歳向けの等ラウドネス曲線の近似
         let correction = 1.0;
         
-        if (f < 500) {
-            // 極低音域の補正（500Hz以下）- より強く強調
+        if (f < 250) {
+            // 極低音域の補正（250Hz以下）- 大幅に強調
+            const logRatio = Math.log10(250 / f);
+            correction = 1.0 + (logRatio * 0.8); // 低音域を大幅に強調
+        } else if (f < 500) {
+            // 低音域の補正（250Hz-500Hz）
             const logRatio = Math.log10(500 / f);
-            correction = 1.0 + (logRatio * 0.5); // 低音域をより強調
+            correction = 1.0 + (logRatio * 0.7);
         } else if (f < 1000) {
-            // 低音域の補正（500Hz-1kHz）
+            // 中低音域の補正（500Hz-1kHz）
             const logRatio = Math.log10(1000 / f);
-            correction = 1.0 + (logRatio * 0.4);
-        } else if (f < 2000) {
-            // 中音域（1-2kHz）- 基準域
+            correction = 1.0 + (logRatio * 0.5);
+        } else if (f < 1500) {
+            // 中音域（1-1.5kHz）- 基準域
             correction = 1.0;
-        } else if (f < 4000) {
-            // 中高音域（2-4kHz）- 10代は感度が高いので抑制
-            correction = 0.8;
-        } else if (f < 8000) {
-            // 高音域（4-8kHz）- さらに抑制
-            correction = 0.7;
+        } else if (f < 3000) {
+            // 中高音域（1.5-3kHz）- 5歳児は感度が高いので抑制
+            correction = 0.6;
+        } else if (f < 6000) {
+            // 高音域（3-6kHz）- 大幅に抑制
+            correction = 0.4;
         } else {
-            // 超高音域（8kHz以上）- 大幅に抑制
-            const logRatio = Math.log10(f / 8000);
-            correction = 0.7 - (logRatio * 0.2);
+            // 超高音域（6kHz以上）- 非常に大幅に抑制
+            const logRatio = Math.log10(f / 6000);
+            correction = 0.4 - (logRatio * 0.3);
         }
         
-        // 補正値を0.4-1.6の範囲に制限
-        return Math.max(0.4, Math.min(1.6, correction));
+        // 補正値を0.2-2.0の範囲に制限
+        return Math.max(0.2, Math.min(2.0, correction));
     }
     
     createOscillator(frequency) {
