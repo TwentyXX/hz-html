@@ -23,10 +23,14 @@ class TwelveToneLoop {
         this.loopCount = 0; // ループ回数
         this.isReverse = false; // 逆順フラグ
         this.loudnessCorrection = true; // ラウドネス補正フラグ
+        this.wakeLockEnabled = true; // Wake Lock有効フラグ
+        this.mediaSessionEnabled = true; // Media Session有効フラグ
+        this.wakeLock = null; // Wake Lockオブジェクト
         
         this.initializeElements();
         this.setupEventListeners();
         this.setupBackgroundPlayback();
+        this.setupMediaSession();
         this.loadSettings();
     }
     
@@ -47,6 +51,8 @@ class TwelveToneLoop {
         this.endOctaveSelect = document.getElementById('endOctaveSelect');
         this.endKeyValue = document.getElementById('endKeyValue');
         this.loudnessCorrectionCheckbox = document.getElementById('loudnessCorrection');
+        this.wakeLockEnabledCheckbox = document.getElementById('wakeLockEnabled');
+        this.mediaSessionEnabledCheckbox = document.getElementById('mediaSessionEnabled');
     }
     
     setupEventListeners() {
@@ -100,6 +106,24 @@ class TwelveToneLoop {
         this.loudnessCorrectionCheckbox.addEventListener('change', (e) => {
             this.loudnessCorrection = e.target.checked;
             this.saveSettings();
+        });
+        
+        this.wakeLockEnabledCheckbox.addEventListener('change', (e) => {
+            this.wakeLockEnabled = e.target.checked;
+            this.saveSettings();
+            if (this.wakeLockEnabled && this.isPlaying) {
+                this.requestWakeLock();
+            } else {
+                this.releaseWakeLock();
+            }
+        });
+        
+        this.mediaSessionEnabledCheckbox.addEventListener('change', (e) => {
+            this.mediaSessionEnabled = e.target.checked;
+            this.saveSettings();
+            if (this.mediaSessionEnabled) {
+                this.setupMediaSession();
+            }
         });
     }
     
@@ -270,7 +294,9 @@ class TwelveToneLoop {
         const noteName = this.absoluteIndexToKey(absoluteIndex);
         const direction = this.isReverse ? '(逆順)' : '(順方向)';
         const correctionInfo = this.loudnessCorrection ? ' [補正済]' : '';
-        this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)${correctionInfo}`;
+        const wakeLockInfo = this.wakeLock ? ' [画面オン]' : '';
+        const mediaSessionInfo = this.mediaSessionEnabled ? ' [メディア]' : '';
+        this.currentNoteDisplay.textContent = `${noteName} ${direction} (${frequency.toFixed(1)} Hz)${correctionInfo}${wakeLockInfo}${mediaSessionInfo}`;
     }
     
     async start() {
@@ -282,6 +308,12 @@ class TwelveToneLoop {
             this.isPlaying = true;
             this.startBtn.disabled = true;
             this.stopBtn.disabled = false;
+            
+            // Wake Lockを要求
+            await this.requestWakeLock();
+            
+            // Media Sessionを更新
+            this.updateMediaSessionMetadata();
             
             // 最初の音を再生
             this.playNote(this.currentNoteIndex);
@@ -345,6 +377,12 @@ class TwelveToneLoop {
         this.currentNoteIndex = 0;
         this.loopCount = 0;
         this.isReverse = false;
+        
+        // Wake Lockを解除
+        this.releaseWakeLock();
+        
+        // Media Sessionを更新
+        this.updateMediaSessionMetadata();
     }
     
     restart() {
@@ -352,6 +390,102 @@ class TwelveToneLoop {
             this.stop();
             setTimeout(() => this.start(), 100);
         }
+    }
+    
+    // Wake Lockを要求
+    async requestWakeLock() {
+        if (!this.wakeLockEnabled) return;
+        
+        try {
+            if ('wakeLock' in navigator) {
+                this.wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock が有効になりました');
+                
+                // Wake Lockが解除された場合の処理
+                this.wakeLock.addEventListener('release', () => {
+                    console.log('Wake Lock が解除されました');
+                });
+            }
+        } catch (err) {
+            console.warn('Wake Lock の要求に失敗しました:', err);
+        }
+    }
+    
+    // Wake Lockを解除
+    releaseWakeLock() {
+        if (this.wakeLock) {
+            this.wakeLock.release();
+            this.wakeLock = null;
+            console.log('Wake Lock を手動で解除しました');
+        }
+    }
+    
+    // Media Session APIのセットアップ
+    setupMediaSession() {
+        if (!this.mediaSessionEnabled || !('mediaSession' in navigator)) return;
+        
+        // アクションハンドラーを設定
+        navigator.mediaSession.setActionHandler('play', () => {
+            console.log('Media Session: 再生要求');
+            this.start();
+        });
+        
+        navigator.mediaSession.setActionHandler('pause', () => {
+            console.log('Media Session: 一時停止要求');
+            this.stop();
+        });
+        
+        navigator.mediaSession.setActionHandler('stop', () => {
+            console.log('Media Session: 停止要求');
+            this.stop();
+        });
+        
+        // 次/前の曲（ループ方向切り替え）
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            console.log('Media Session: 次の曲（順方向に切り替え）');
+            this.isReverse = false;
+            this.loopCount = this.loopCount % 2 === 0 ? this.loopCount : this.loopCount + 1;
+            this.updateMediaSessionMetadata();
+        });
+        
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            console.log('Media Session: 前の曲（逆方向に切り替え）');
+            this.isReverse = true;
+            this.loopCount = this.loopCount % 2 === 1 ? this.loopCount : this.loopCount + 1;
+            this.updateMediaSessionMetadata();
+        });
+        
+        this.updateMediaSessionMetadata();
+    }
+    
+    // Media Sessionのメタデータを更新
+    updateMediaSessionMetadata() {
+        if (!this.mediaSessionEnabled || !('mediaSession' in navigator)) return;
+        
+        const direction = this.isReverse ? '逆順' : '順方向';
+        const range = `${this.startKey}-${this.endKey}`;
+        
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: `12音正弦波ループ (${direction})`,
+            artist: `範囲: ${range}`,
+            album: `テンポ: ${this.tempo} BPM | 音量: ${Math.round(this.volume * 100)}%`,
+            artwork: [
+                {
+                    src: 'data:image/svg+xml;base64,' + btoa(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+                            <rect width="256" height="256" fill="#2196F3"/>
+                            <text x="128" y="140" text-anchor="middle" fill="white" font-size="48" font-family="Arial">♪</text>
+                            <text x="128" y="180" text-anchor="middle" fill="white" font-size="16" font-family="Arial">${range}</text>
+                        </svg>
+                    `),
+                    sizes: '256x256',
+                    type: 'image/svg+xml'
+                }
+            ]
+        });
+        
+        // 再生状態を更新
+        navigator.mediaSession.playbackState = this.isPlaying ? 'playing' : 'paused';
     }
     
     // バックグラウンド再生のセットアップ
@@ -390,12 +524,20 @@ class TwelveToneLoop {
             }
         });
         
-        // ページのアンロード前に警告（オプション）
+        // ページのアンロード前に警告とWake Lock解除
         window.addEventListener('beforeunload', (e) => {
+            this.releaseWakeLock();
             if (this.isPlaying) {
                 e.preventDefault();
                 e.returnValue = '音楽が再生中です。ページを離れますか？';
                 return e.returnValue;
+            }
+        });
+        
+        // ページの可視性が戻った時にWake Lockを再要求
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.isPlaying && this.wakeLockEnabled) {
+                this.requestWakeLock();
             }
         });
     }
@@ -408,7 +550,9 @@ class TwelveToneLoop {
             baseFrequency: this.baseFrequency,
             startKey: this.startKey,
             endKey: this.endKey,
-            loudnessCorrection: this.loudnessCorrection
+            loudnessCorrection: this.loudnessCorrection,
+            wakeLockEnabled: this.wakeLockEnabled,
+            mediaSessionEnabled: this.mediaSessionEnabled
         };
         
         const expires = new Date();
@@ -456,6 +600,16 @@ class TwelveToneLoop {
         if (settings.loudnessCorrection !== undefined) {
             this.loudnessCorrection = settings.loudnessCorrection;
             this.loudnessCorrectionCheckbox.checked = settings.loudnessCorrection;
+        }
+        
+        if (settings.wakeLockEnabled !== undefined) {
+            this.wakeLockEnabled = settings.wakeLockEnabled;
+            this.wakeLockEnabledCheckbox.checked = settings.wakeLockEnabled;
+        }
+        
+        if (settings.mediaSessionEnabled !== undefined) {
+            this.mediaSessionEnabled = settings.mediaSessionEnabled;
+            this.mediaSessionEnabledCheckbox.checked = settings.mediaSessionEnabled;
         }
         
         if (settings.startKey !== undefined) {
