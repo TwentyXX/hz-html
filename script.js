@@ -224,6 +224,8 @@ class TwelveToneLoop {
                         this.loopCount++;
                         this.isReverse = this.loopCount % 2 === 1;
                         this.currentNoteIndex = this.isReverse ? this.totalNotes - 1 : 0;
+                        // ループ完了時は音を再生せずに次の間隔まで待つ
+                        return;
                     }
                 } else {
                     this.currentNoteIndex++;
@@ -231,6 +233,8 @@ class TwelveToneLoop {
                         this.loopCount++;
                         this.isReverse = this.loopCount % 2 === 1;
                         this.currentNoteIndex = this.isReverse ? this.totalNotes - 1 : 0;
+                        // ループ完了時は音を再生せずに次の間隔まで待つ
+                        return;
                     }
                 }
                 this.playNote(this.currentNoteIndex);
